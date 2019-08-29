@@ -7,24 +7,20 @@
 //
 
 import UIKit
-import CoreData
+
+import RealmSwift
 
 class CategoryTableViewController: UITableViewController {
 
-    var catArray = [Category]()
+    let realm = try! Realm()
     
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var categories: Results<Category>!
     
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
-        loadCat()
+        loadCatogory()
     }
 
     // MARK: - Table view data source
@@ -36,14 +32,14 @@ class CategoryTableViewController: UITableViewController {
     //MARK: tableview Datasource Method
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return catArray.count
+        return categories?.count ?? 1
     }
 
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
 
-        cell.textLabel?.text = catArray[indexPath.row].name
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories added "
         return cell
     }
    
@@ -55,7 +51,7 @@ class CategoryTableViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let destinationVC = segue.destination as! TodoListViewController
         if let IndexPath = tableView.indexPathForSelectedRow {
-            destinationVC.selectedCategory = catArray[IndexPath.row]
+            destinationVC.selectedCategory = categories![IndexPath.row]
         }
     }
     /*
@@ -109,10 +105,11 @@ class CategoryTableViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Category", style: .default) {
             (action) in
         
-            let newCat = Category(context: self.context)
-            newCat.name = catField.text!
-            self.catArray.append(newCat)
-            self.saveCat()
+            let newCategory = Category()
+            newCategory.name = catField.text!
+            
+//            self.category.append(newCategory)
+            self.save(category: newCategory)
         }
         alert.addTextField {
             (alertTextField) in alertTextField.placeholder = "Create new category"
@@ -122,22 +119,19 @@ class CategoryTableViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     //MARK: Data Manumulation Methods
-    func saveCat(){
+    func save(category: Category){
         do {
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
         } catch {
             print("Error saving Category \(error)")
         }
-        self.tableView.reloadData()
+        tableView.reloadData()
     }
     
-    func loadCat(){
-        let request : NSFetchRequest<Category> = Category.fetchRequest()
-        do {
-            catArray = try context.fetch(request)
-        } catch {
-            print ("Error fatching Category from context \(error)")
-        }
+    func loadCatogory(){
+        categories = realm.objects(Category.self)
         self.tableView.reloadData()
     }
     
